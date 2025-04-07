@@ -7,7 +7,7 @@ sightseeing_planning_task:
 
     - destination{destination}: The travel destination 
     - age(The traveler's age): {age} 
-    - travel date (The start date of the trip): {travel_date} 
+    - travel date (The start date of the trip): {start_date} 
     - trip duration (Total duration of the trip ind days): {trip_duration}
 
     steps:
@@ -26,11 +26,10 @@ itinerary_compilation_task:
 
      steps:
       - Group sightseeing spots by geographic proximity to minimize travel time between them.
-      - Prioritize a smooth and balanced daily flow (3–4 key spots per day depending on complexity/distance).
       - Ensure the total number of locations fits naturally within the trip duration.
-      - Consider traveler comfort by avoiding overly packed or exhausting schedules.
       - Start each day with spots that open earlier and end with relaxing or scenic options (like lakes, gardens, or sunset viewpoints).
       - Optionally flag “optional/bonus” sights if they are slightly farther or time-permitting.
+      - Once you generate the itinerary,  Updates the 'date' field in each day's plan based on the trip's start_date : {start_date}.
   expected_output: >
     A structured day-by-day itinerary plan.
     Each day includes a list of 2–5 sights (with short descriptions), arranged in optimal visiting order with light notes on travel time or nearby grouping.

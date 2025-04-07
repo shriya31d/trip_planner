@@ -1,4 +1,5 @@
-from crewai import Agent, Crew, Process, Task
+import os
+from crewai import Agent, Crew, Process, Task,LLM
 from crewai.project import CrewBase, agent, crew, task
 
 # Uncomment the following line to use an example of a custom tool
@@ -9,28 +10,26 @@ from crewai_tools import SerperDevTool, ScrapeWebsiteTool
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
-class TravelItinerary(BaseModel):
-    destination: str = Field(..., description="Travel destination (e.g., Kashmir, India)")
-    start_date: str = Field(..., description="Start date of the trip in YYYY-MM-DD format")
-    duration_days: int = Field(..., description="Total number of days for the trip")
-    traveler_age: Optional[int] = Field(None, description="Age of the traveler for personalization")
-    season: Optional[str] = Field(None, description="Inferred season based on the start date and destination")
-    day: int = Field(..., description="Day number of the itinerary")
-    date: Optional[str] = Field(None, description="Date corresponding to the day, optional if auto-calculated")
-    spots: List[str] = Field(..., description="List of sightseeing spots for the day")
-    location: str = Field(..., description="Primary location or area visited on this day (e.g., Srinagar, Gulmarg, Pahalgam)")
-    
+from src.pydantic_models.TravelItinerary import TravelItinerary
+from src.tools.custom_tool import add_actual_dates_in_itinerary
+
 @CrewBase
 class TripPlannerCrew():
     """TripPlanner crew"""
     agents_config = 'config/agents.yaml'
     tasks_config = 'config/tasks.yaml'
 
+    manager_llm = LLM(
+        model="azure/gpt-4o",
+        base_url= os.getenv("AZURE_API_BASE"),
+        api_key= os.getenv("AZURE_API_KEY")
+    )
+
     @agent
     def sightseeing_planner(self) -> Agent:
         return Agent(
             config=self.agents_config['sightseeing_planner'],
-            tools=[SerperDevTool(), ScrapeWebsiteTool()], # Example of custom tool, loaded at the beginning of file
+            tools=[SerperDevTool(n_results=5), ScrapeWebsiteTool()], # Example of custom tool, loaded at the beginning of file
             verbose=True,
             allow_delegation=False,
         )
@@ -39,7 +38,7 @@ class TripPlannerCrew():
     def itinerary_compiler(self) -> Agent:
         return Agent(
             config=self.agents_config['itinerary_compiler'],
-            tools=[SerperDevTool()],
+            tools=[add_actual_dates_in_itinerary],
             verbose=True,
             allow_delegation=False,
         )
@@ -65,7 +64,6 @@ class TripPlannerCrew():
         return Crew(
             agents=self.agents, # Automatically created by the @agent decorator
             tasks=self.tasks, # Automatically created by the @task decorator
-            process=Process.sequential,
             verbose = True,
-            # process=Process.hierarchical, # In case you want to use that instead https://docs.crewai.com/how-to/Hierarchical/
+            process=Process.sequential
         )
